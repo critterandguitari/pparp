@@ -10,7 +10,49 @@ typedef struct _pparp {
     t_int i_voices[4];
     t_int i_oct_arp_shift;
     t_int i_oct_arp_index;
+
+    t_int chris_shifter_count2;
+    t_int chris_shifter_l;
+    t_int chris_shifter_octave_shift[4];
+
 } t_pparp;  
+
+static t_int chris_shifter(t_pparp *x) {
+
+    t_int i = 0;
+
+    x->chris_shifter_l++;
+    x->chris_shifter_l &= 3;
+    // find octave shifts for each voice
+    x->chris_shifter_count2++;
+    if (x->chris_shifter_count2 > 2) x->chris_shifter_count2 = 0;
+   
+    // do strage octave shifting  sounds cool, 
+    // don't know how it works exactly, you'll have to ask chris
+    if (x->chris_shifter_count2 ==0) {  
+        for (i = 0; i < 4; i++){
+            x->chris_shifter_octave_shift[i] = ((x->chris_shifter_l+i) & 3);
+        }
+    }
+    else if (x->chris_shifter_count2 == 1) {
+        for (i = 0; i < 4; i++){
+            x->chris_shifter_octave_shift[i] =  ((x->chris_shifter_l + ((i & 1) * 2)) & 3);
+        }
+    }
+    else if (x->chris_shifter_count2 == 2) {
+        for (i = 0; i < 4; i++){
+            x->chris_shifter_octave_shift[i] = x->chris_shifter_l;
+        }
+    }
+
+    // update synth
+    for (i=0; i<4; i++){
+
+        if (x->i_voices[i]) {
+            outlet_float(x->x_obj.ob_outlet, (x->i_voices[i]  + 24) - (12 * x->chris_shifter_octave_shift[i]));  // do the octave shift
+        }
+    } 
+}
 
 static t_int octave_arp(t_pparp *x) {
     t_int i = 0;
@@ -63,11 +105,14 @@ static void allocate_voices(t_pparp *x){
 }
 
 void pparp_bang(t_pparp *x) {
-    
+    /*
+    // octave arp
     t_int note = octave_arp(x);
     if (note) {
         outlet_float(x->x_obj.ob_outlet, note);
-    }
+    }*/
+
+    chris_shifter(x);
     
 /*    t_int a, b, c, d;
     a = x->i_voices[0];
